@@ -6,7 +6,6 @@ namespace FlightPlanner.Models
     {
         public string Country { get; set; }
         public string City { get; set; }
-
         [JsonPropertyName("airport")]
         public string AirportName { get; set; }
     }
