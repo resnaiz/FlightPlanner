@@ -1,25 +1,36 @@
 ﻿using FlightPlanner.Models;
-using FlightPlanner.Storage;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace FlightPlanner.Controllers
 {
     [Route("api")]
     [ApiController]
-    public class CostumerApiController : ControllerBase
+    public class CostumerApiController : BaseApiController
     {
+        public CostumerApiController(FlightPlannerDbContext context) : base(context)
+        {
+        }
+
+        private static readonly object lockMethod = new object();
+
         [HttpGet]
         [Route("airports")]
         public IActionResult SearchAirports(string search)
         {
-            var airports = FlightStorage.SearchAirports(search);
+            search = search.ToUpper().Trim();
 
-            if (airports != null)
-            {
-                return Ok(airports);
-            }
+            var airport = _context.Airports.FirstOrDefault(x =>
+                x.City.Substring(0, search.Length) == search ||
+                x.Country.Substring(0, search.Length) == search ||
+                x.AirportName.Substring(0, search.Length) == search);
 
-            return NotFound();
+            Airport[] airports = new Airport[1];
+            airports[0] = airport;
+
+            return Ok(airports);
         }
 
         [HttpPost]
@@ -31,26 +42,41 @@ namespace FlightPlanner.Controllers
                 return BadRequest();
             }
 
-            var flights = FlightStorage.SearchFlights();
+            var flights = _context.Flights
+                .Include(f => f.From)
+                .Include(f => f.To)
+                .Where(f =>
+                    f.From.AirportName == req.From
+                    && f.To.AirportName == req.To
+                )
+                .ToList();
 
-            if (flights.Count == 0)
+            var res = new PageResult();
+
+            if (flights.Count > 0)
             {
-                return Ok(new PageResult());
+                res.Items = flights;
+                res.Page = 1;
+                res.TotalItems = flights.Count;
+            }
+            else
+            {
+                res.Items = new List<Flight>();
+                res.Page = 0;
+                res.TotalItems = 0;
             }
 
-            var firstPage = new PageResult
-            {
-                TotalItems = flights.Count
-            };
-
-            return Ok(firstPage);
+            return Ok(res);
         }
 
         [HttpGet]
         [Route("flights/{id}")]
         public IActionResult FindFlightById(int id)
         {
-            var flight = FlightStorage.GetFlight(id);
+            var flight = _context.Flights.
+                Include(f => f.From).
+                Include(f => f.To).
+                FirstOrDefault(f => f.Id == id);
 
             if (flight == null)
             {
