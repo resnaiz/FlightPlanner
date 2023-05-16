@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using FlightPlanner.Handlers;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlightPlanner
 {
@@ -28,7 +29,8 @@ namespace FlightPlanner
             });
             services.AddAuthentication("BasicAuthentication")
                 .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationAttribute>("BasicAuthentication", null);
-
+            services.AddDbContext<FlightPlannerDbContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("Flight-planner")));
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
