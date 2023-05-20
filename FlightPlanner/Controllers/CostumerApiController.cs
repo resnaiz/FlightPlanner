@@ -1,8 +1,12 @@
-﻿using FlightPlanner.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
+using AutoMapper;
+using FlightPlanner.Core.DataTransfer;
+using FlightPlanner.Core.Models;
+using FlightPlanner.Core.Services;
+using FlightPlanner.Data.Database;
 
 namespace FlightPlanner.Controllers
 {
@@ -10,8 +14,22 @@ namespace FlightPlanner.Controllers
     [ApiController]
     public class CostumerApiController : BaseApiController
     {
-        public CostumerApiController(FlightPlannerDbContext context) : base(context)
+        private readonly IMapper _mapper;
+        private readonly IAirportService _airportService;
+        private readonly IFlightService _flightService;
+        private readonly IEnumerable<IValidationForSearch> _validators;
+
+        public CostumerApiController(
+            IFlightPlannerDbContext context,
+            IFlightService flightService,
+            IAirportService airportService,
+            IMapper mapper,
+            IEnumerable<IValidationForSearch> searchVal) : base(context)
         {
+            _flightService = flightService;
+            _airportService = airportService;
+            _mapper = mapper;
+            _validators = searchVal;
         }
 
         private static readonly object lockMethod = new object();
@@ -20,15 +38,15 @@ namespace FlightPlanner.Controllers
         [Route("airports")]
         public IActionResult SearchAirports(string search)
         {
-            search = search.ToUpper().Trim();
+            var airport = _airportService.FindAirport(search);
+            var map = _mapper.Map<AddAirportResponse>(airport);
 
-            var airport = _context.Airports.FirstOrDefault(x =>
-                x.City.Substring(0, search.Length) == search ||
-                x.Country.Substring(0, search.Length) == search ||
-                x.AirportName.Substring(0, search.Length) == search);
+            if (map == null)
+            {
+                return NotFound();
+            }
 
-            Airport[] airports = new Airport[1];
-            airports[0] = airport;
+            var airports = new List<AddAirportResponse> { map };
 
             return Ok(airports);
         }
@@ -37,53 +55,27 @@ namespace FlightPlanner.Controllers
         [Route("flights/search")]
         public IActionResult SearchFlight(SearchFlightsRequest req)
         {
-            if (req.To == req.From)
+            if (!_validators.All(x => x.IsValid(req)))
+            {
+                return BadRequest();
+            }  
+
+            if (req.From == req.To)
             {
                 return BadRequest();
             }
 
-            var flights = _context.Flights
-                .Include(f => f.From)
-                .Include(f => f.To)
-                .Where(f =>
-                    f.From.AirportName == req.From
-                    && f.To.AirportName == req.To
-                )
-                .ToList();
-
-            var res = new PageResult();
-
-            if (flights.Count > 0)
-            {
-                res.Items = flights;
-                res.Page = 1;
-                res.TotalItems = flights.Count;
-            }
-            else
-            {
-                res.Items = new List<Flight>();
-                res.Page = 0;
-                res.TotalItems = 0;
-            }
-
-            return Ok(res);
+            return Ok(_flightService.FindFlight(req));
         }
 
         [HttpGet]
         [Route("flights/{id}")]
         public IActionResult FindFlightById(int id)
         {
-            var flight = _context.Flights.
-                Include(f => f.From).
-                Include(f => f.To).
-                FirstOrDefault(f => f.Id == id);
+            var flightId = _flightService.GetFlightById(id);
+            var flight = _mapper.Map<AddFlightResponse>(flightId);
 
-            if (flight == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(flight);
+            return flight != null ? Ok(_mapper.Map<AddFlightResponse>(flight)) : NotFound();
         }
     }
 }

@@ -1,8 +1,7 @@
-﻿namespace FlightPlanner.Models
+﻿namespace FlightPlanner.Core.Models
 {
-    public class Flight
+    public class Flight : Entity
     {
-        public int Id { get; set; }
         public string Carrier { get; set; }
         public string ArrivalTime { get; set; }
         public string DepartureTime { get; set; }

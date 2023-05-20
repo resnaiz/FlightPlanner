@@ -1,9 +1,9 @@
-﻿using FlightPlanner.Models;
+﻿using FlightPlanner.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FlightPlanner
+namespace FlightPlanner.Data.Database
 {
-    public class FlightPlannerDbContext : DbContext
+    public class FlightPlannerDbContext : DbContext, IFlightPlannerDbContext
     {
         public FlightPlannerDbContext(DbContextOptions options) : base(options)
         {
