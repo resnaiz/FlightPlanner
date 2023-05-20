@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace FlightPlanner.Migrations
+namespace FlightPlanner.Data.Migrations
 {
-    public partial class init : Migration
+    public partial class fpinit3 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

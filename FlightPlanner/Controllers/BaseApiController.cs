@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FlightPlanner.Data.Database;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FlightPlanner.Controllers
 {
@@ -6,9 +7,11 @@ namespace FlightPlanner.Controllers
     {
         protected readonly FlightPlannerDbContext _context;
 
-        public BaseApiController(FlightPlannerDbContext context)
+        public BaseApiController(IFlightPlannerDbContext context)
         {
-            _context = context;
+            Context = context;
         }
+
+        public IFlightPlannerDbContext Context { get; }
     }
 }

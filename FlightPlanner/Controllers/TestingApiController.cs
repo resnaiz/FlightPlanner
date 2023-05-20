@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FlightPlanner.Core.Models;
+using FlightPlanner.Core.Services;
+using FlightPlanner.Data.Database;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FlightPlanner.Controllers
 {
@@ -6,8 +9,13 @@ namespace FlightPlanner.Controllers
     [ApiController]
     public class TestingApiController : BaseApiController
     {
-        public TestingApiController(FlightPlannerDbContext context) : base(context)
+        private readonly IClear _clear;
+
+        public TestingApiController(
+            IFlightPlannerDbContext context,
+            IClear clear) : base(context)
         {
+            _clear = clear;
         }
 
         private static readonly object lockMethod = new object();
@@ -18,9 +26,8 @@ namespace FlightPlanner.Controllers
         {
             lock (lockMethod)
             {
-                _context.Flights.RemoveRange(_context.Flights);
-                _context.Airports.RemoveRange(_context.Airports);
-                _context.SaveChanges();
+                _clear.Clear<Flight>();
+                _clear.Clear<Airport>();
 
                 return Ok();
             }
